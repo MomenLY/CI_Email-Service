@@ -40,7 +40,7 @@ export class EmailService {
       secretAccessKey: process.env.AWS_SECRETACCESS_KEY,
     });
   }
-  async create(createEmailDto: CreateEmailDto, authToken: string) {
+  async create(createEmailDto: any, authToken: string) {
     try {
       const subscriber = await this.helperService.accountValidation(authToken);
       if (!subscriber) {
@@ -51,8 +51,8 @@ export class EmailService {
         createEmailDto.to = res.non_blackListedEmails
 
         //if all the emails are blacklisted then throw error
-        if(createEmailDto.to.length === 0) {
-          throw new BadRequestException({message: 'All Emails are blacklisted', blackListedEmails: res.blackListedEmails});
+        if (createEmailDto.to.length === 0) {
+          throw new BadRequestException({ message: 'All Emails are blacklisted', blackListedEmails: res.blackListedEmails });
         }
 
         const email = new Email();
@@ -61,22 +61,41 @@ export class EmailService {
         email.EBody = createEmailDto;
         await email.save();
         const result: any = await this.processEmailQueue();
-        return {message: result, blackListedEmails: res.blackListedEmails};
+        return { message: result, blackListedEmails: res.blackListedEmails };
       }
     } catch (error) {
       throw new BadRequestException(ErrorMessages.ERROR_CREATING_EMAIL);
     }
   }
 
-  private async fetchTemplate(templateCode: string, subscriberId: string) {
-    const template = await EmailTemplate.findOne({
+  async fetchTemplate(templateCode: string, subscriberId: string, providerId: string) {
+    const template_from_AccountId = await EmailTemplate.findOne({
       where: { TTemplateCode: templateCode, TAccountId: subscriberId },
     });
-    return template;
+    if (template_from_AccountId) {
+      return template_from_AccountId;
+    } else {
+      const template_from_ProviderId = await EmailTemplate.findOne({ where: { TTemplateCode: templateCode, TAccountId: providerId } });
+      if (template_from_ProviderId) {
+        return template_from_ProviderId;
+      } else {
+        return "No template found";
+      }
+    }
   }
+
+  async fetchTemplateLayer(subscriberId: string, providerId) {
+    let templateLayer = await TemplateLayer.findOne({
+      where: { TLAccountId: subscriberId },
+    });
+    if (templateLayer === null) {
+      templateLayer = await TemplateLayer.findOne({ where: { TLAccountId: providerId } })
+    }
+    return templateLayer;
+  }
+
   private async processEmailQueue() {
     const emailsToProcess = await Email.find({ where: { EStatus: 0 } });
-
     if (emailsToProcess.length > 0) {
       const emailToProcess = emailsToProcess[0];
       emailToProcess.EStatus = 2;
@@ -85,18 +104,16 @@ export class EmailService {
       const template = await this.fetchTemplate(
         emailToProcess.EBody.templateCode,
         emailToProcess.ESubscriberId,
+        emailToProcess.EBody.providerId
       );
-  
-      if (!template) {
+      if (!template || template === 'No template found') {
         throw new BadRequestException(ErrorMessages.TEMPLATE_NOT_FOUND);
       } else {
         const replacedTemplate = this.replacePlaceholders(
           template.TBody,
           emailToProcess.EBody.data,
         );
-        const templateLayer = await TemplateLayer.findOne({
-          where: { TLAccountId: emailToProcess.ESubscriberId },
-        });
+        const templateLayer = await this.fetchTemplateLayer(emailToProcess.ESubscriberId, emailToProcess.EBody.providerId)
         const fullTemplate = templateLayer.TLTemplateLayer.replace(
           '{{body}}',
           replacedTemplate,
@@ -119,7 +136,6 @@ export class EmailService {
             await this.processEmailQueue();
             return SuccessMessages.EMAIL_SENT_SUCCESS;
           } else {
-
             emailToProcess.EStatus = 3;
             await emailToProcess.save();
             await this.processEmailQueue();
@@ -130,7 +146,6 @@ export class EmailService {
           emailToProcess.EStatus = 3;
           await emailToProcess.save();
           await this.processEmailQueue();
-          // throw error
         }
       }
     } else {
@@ -138,18 +153,18 @@ export class EmailService {
     }
   }
 
-  async checkIsBlackList(emails: string[]){
+  async checkIsBlackList(emails: string[]) {
     const blackListedEmails = []
     const non_blackListedEmails = []
     for (const email of emails) {
       const res = await this.blackListService.isEmailBlacklisted(email);
-      if(res === true){
+      if (res === true) {
         blackListedEmails.push(email)
       } else {
         non_blackListedEmails.push(email)
       }
     }
-    return {blackListedEmails, non_blackListedEmails}
+    return { blackListedEmails, non_blackListedEmails }
   }
 
   private async sendEmail(
@@ -196,13 +211,21 @@ export class EmailService {
     }
   }
 
-  private replacePlaceholders(template: string, data: any) {
+  replacePlaceholders(template: string, data: any) {
     let replacedTemplate = template;
     for (const key of Object.keys(data)) {
       const regex = new RegExp(`{{${key}}}`, 'g');
       replacedTemplate = replacedTemplate.replace(regex, data[key]);
     }
     return replacedTemplate;
+  }
+
+  async createBatches(emailDetails: any, count: number) {
+    let batches = [];
+    for (let i = 0; i < emailDetails.length; i += count) {
+      batches.push(emailDetails.slice(i, i + count));
+    }
+    return batches;
   }
 
   async findAll(authToken: string) {
@@ -219,3 +242,9 @@ export class EmailService {
     }
   }
 }
+
+
+
+
+
+

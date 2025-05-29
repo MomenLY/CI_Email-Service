@@ -8,10 +8,12 @@ import {
 } from '@nestjs/common';
 import { EmailService } from './email.service';
 import { CreateEmailDto } from './dto/create-email.dto';
+import { CreateBulkEmailDto } from 'src/bulk-email/dto/create-bulk-email.dto';
+import { BulkEmailService } from 'src/bulk-email/bulk-email.service';
 
 @Controller('email')
 export class EmailController {
-  constructor(private readonly emailService: EmailService) {}
+  constructor(private readonly emailService: EmailService, private bulkEmailService: BulkEmailService) { }
 
   @Post('send')
   create(
@@ -28,5 +30,10 @@ export class EmailController {
     } else {
       return this.emailService.findAll(authToken);
     }
+  }
+
+  @Post('bulk')
+  async sendBulkEmails(@Body() createBulkEmailDto: any, @Headers('Auth-Code') authToken: string) {
+    return this.bulkEmailService.sendBulkEmails(createBulkEmailDto, authToken);
   }
 }

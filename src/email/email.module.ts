@@ -4,6 +4,7 @@ import { EmailController } from './email.controller';
 import { ServicesService } from 'src/services/services.service';
 import { ConfigModule } from '@nestjs/config';
 import { BlacklistEmailModule } from 'src/black-list-emails/black-list-emails.module';
+import { BulkEmailService } from 'src/bulk-email/bulk-email.service';
 
 @Module({
   imports: [
@@ -14,6 +15,6 @@ import { BlacklistEmailModule } from 'src/black-list-emails/black-list-emails.mo
     BlacklistEmailModule,
   ],
   controllers: [EmailController],
-  providers: [EmailService, ServicesService],
+  providers: [EmailService, ServicesService, BulkEmailService],
 })
-export class EmailModule {}
+export class EmailModule { }

@@ -11,7 +11,7 @@ import { ErrorMessages } from 'src/utils/messages';
 
 @Injectable()
 export class EmailTemplateService {
-  constructor(private readonly helperService: ServicesService) {}
+  constructor(private readonly helperService: ServicesService) { }
 
   checkTemplate = async (templateCode: string, subscriberId: string) => {
     const template = await EmailTemplate.findOne({
@@ -141,13 +141,34 @@ export class EmailTemplateService {
 
   async findAll(authToken: string) {
     try {
-      console.log(authToken);
       const subscriber = await this.helperService.accountValidation(authToken);
       if (subscriber) {
-        const emailTemplates = await EmailTemplate.find({
+        let emailTemplates
+        emailTemplates = await EmailTemplate.find({
           where: { TAccountId: subscriber.SAccountId },
         });
+        if(emailTemplates.length === 0){
+          emailTemplates = await EmailTemplate.find({
+            where: {TAccountId: subscriber.SProviderId}
+          });
+        }
         return emailTemplates;
+      } else {
+        throw new BadRequestException(ErrorMessages.SUBSCRIBER_NOT_FOUND);
+      }
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  async findOne(authToken: string, tempCode: string) {
+    try {
+      const subscriber = await this.helperService.accountValidation(authToken);
+      if (subscriber) {
+        const emailTemplate = await EmailTemplate.findOne({
+          where: { TAccountId: subscriber.SAccountId, TTemplateCode: tempCode },
+        });
+        return emailTemplate;
       } else {
         throw new BadRequestException(ErrorMessages.SUBSCRIBER_NOT_FOUND);
       }

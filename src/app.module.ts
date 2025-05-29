@@ -10,6 +10,7 @@ import { ServicesService } from './services/services.service';
 import { TemplateLayerModule } from './template-layer/template-layer.module';
 import { EmailModule } from './email/email.module';
 import { BlacklistEmailModule } from './black-list-emails/black-list-emails.module';
+import { BulkEmailModule } from './bulk-email/bulk-email.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { BlacklistEmailModule } from './black-list-emails/black-list-emails.modu
     TemplateLayerModule,
     EmailModule,
     BlacklistEmailModule,
+    BulkEmailModule,
   ],
   controllers: [AppController],
   providers: [

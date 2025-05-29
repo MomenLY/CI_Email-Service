@@ -6,6 +6,7 @@ import {
   Put,
   Param,
   Headers,
+  Query,
 } from '@nestjs/common';
 import { EmailTemplateService } from './email-template.service';
 import { CreateEmailTemplateDto } from './dto/create-email-template.dto';
@@ -17,7 +18,7 @@ export class EmailTemplateController {
   constructor(
     private readonly emailTemplateService: EmailTemplateService,
     private readonly helperService: ServicesService,
-  ) {}
+  ) { }
 
   @Post()
   create(
@@ -31,6 +32,7 @@ export class EmailTemplateController {
   findAll(@Headers('Auth-Code') authToken: string) {
     return this.emailTemplateService.findAll(authToken);
   }
+
 
   @Put(':templateCode')
   update(

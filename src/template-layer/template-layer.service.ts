@@ -131,7 +131,6 @@ export class TemplateLayerService {
 
   async findAll(authCode: string) {
     try {
-      console.log(authCode);
       const subscriber = await this.helperService.accountValidation(authCode);
       if (subscriber) {
         const emailTemplateLayers = await TemplateLayer.find({

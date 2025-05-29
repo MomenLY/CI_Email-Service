@@ -13,6 +13,7 @@ interface EmailBody {
   cc: string[];
   bcc: string[];
   multiThread: boolean;
+  providerId: string;
 }
 const databaseType = process.env.DB_TYPE || 'mongo';
 @Entity({ database: databaseType, name: 'emailQueue' })
